@@ -148,22 +148,28 @@ def make_melgram(mono_sig, sr, n_mels=96):   # @keunwoochoi used 96 mels in comp
     '''
     return melgram
 
+def make_phase_gram(mono_sig, sr):
+    stft = librosa.stft(mono_sig)
+    magnitude, phase = librosa.magphase(stft)   # we don't need magnitude
+    return phase
 
 # turn multichannel audio as multiple melgram layers
-def make_layered_melgram(signal, sr, mels=96):
+def make_layered_melgram(signal, sr):
     if (signal.ndim == 1):      # given the way the preprocessing code is  now, this may not get called
         signal = np.reshape( signal, (1,signal.shape[0]))
 
     # get mel-spectrogram for each channel, and layer them into multi-dim array
     for channel in range(signal.shape[0]):
-        melgram = make_melgram(signal[channel],sr, n_mels=mels)
+        melgram = make_melgram(signal[channel],sr)
+        phasegram = make_phase_gram(signal[channel],sr)
 
+        # print melgram shape and phase gram shape to check dimensions
         if (0 == channel):
-            layers = melgram
+            layers = np.append(melgram,phasegram,axis=1)
         else:
-            layers = np.append(layers,melgram,axis=3)  # we keep axis=0 free for keras batches, axis=3 means 'channels_last'
+            newarr = np.append(melgram,phasegram,axis=1)
+            layers = np.append(layers,newarr,axis=1)  # we keep axis=0 free for keras batches
     return layers
-
 
 def nearest_multiple( a, b ):   # returns number smaller than a, which is the nearest multiple of b
     return  int(a/b) * b
