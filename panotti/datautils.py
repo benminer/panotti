@@ -95,9 +95,11 @@ def load_melgram(file_path):
 def get_sample_dimensions(class_names, path='Preproc/Train/'):
     classname = class_names[0]
     audio_path = path + classname + '/'
+    print(" audio path =", audio_path)
     infilename = os.listdir(audio_path)[0]
     melgram = load_melgram(audio_path+infilename)
     print("   get_sample_dimensions: "+infilename+": melgram.shape = ",melgram.shape)
+
     return melgram.shape
 
 
@@ -134,7 +136,7 @@ def make_melgram(mono_sig, sr):
     #    sr=sr, n_mels=96),ref_power=1.0)[np.newaxis,np.newaxis,:,:]
 
     melgram = librosa.amplitude_to_db(librosa.feature.melspectrogram(mono_sig,
-        sr=sr, n_mels=96))[np.newaxis,np.newaxis,:,:]    # @keunwoochoi uses 96 mels
+        sr=sr, n_mels=128))[np.newaxis,np.newaxis,:,:]    # @keunwoochoi uses 96 mels
 
     '''
     # librosa docs also include a perceptual CQT example:
@@ -145,6 +147,10 @@ def make_melgram(mono_sig, sr):
     '''
     return melgram
 
+def make_phase_gram(mono_sig, sr):
+    stft = librosa.stft(mono_sig)
+    magnitude, phase = librosa.magphase(stft)   # we don't need magnitude
+    return phase
 
 # turn multichannel audio as multiple melgram layers
 def make_layered_melgram(signal, sr):
@@ -154,11 +160,15 @@ def make_layered_melgram(signal, sr):
     # get mel-spectrogram for each channel, and layer them into multi-dim array
     for channel in range(signal.shape[0]):
         melgram = make_melgram(signal[channel],sr)
+        # phasegram = make_phase_gram(signal[channel],sr)
 
+        # print melgram shape and phase gram shape to check dimensions
         if (0 == channel):
+            # layers = np.append(melgram, axis=1)
             layers = melgram
         else:
-            layers = np.append(layers,melgram,axis=1)  # we keep axis=0 free for keras batches
+            # newarr = np.append(melgram, axis=3)
+            layers = np.append(layers,melgram,axis=3)  # we keep axis=0 free for keras batches
     return layers
 
 
